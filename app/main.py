@@ -31,8 +31,10 @@ try:
     import os
 
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
-    xgb_model = joblib.load(os.path.join(BASE_DIR, "models", "xgb_model.pkl"))
+
+    prophet_model = joblib.load(
+    os.path.join(BASE_DIR, "models", "prophet_model.pkl")
+    )
     feature_cols = joblib.load(os.path.join(BASE_DIR, "models", "feature_cols.pkl"))
 
     print("✅ Models loaded successfully")
