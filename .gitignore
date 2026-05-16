@@ -3,4 +3,8 @@ __pycache__/
 *.pyc
 .env
 .ipynb_checkpoints/
-models/*.pkl
+
+# Force Git to upload these specific model files
+!models/xgb_model.pkl
+!models/feature_cols.pkl
+!models/prophet_model.json
