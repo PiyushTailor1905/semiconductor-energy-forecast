@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import requests
 import numpy as np
+import os  # Added to read environment variables
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -98,9 +99,15 @@ st.subheader("📈 Revenue Forecast")
 if st.button("🚀 Generate Forecast", type="primary", use_container_width=True):
     with st.spinner("Running forecast models..."):
         try:
-            API_URL = "http://127.0.0.1:8000/predict"
+            # 💡 FIX 1: Look for the API_URL environment variable. Default to Render base URL if not present.
+            BASE_API_URL = os.getenv("API_URL", "https://energichip-api.onrender.com")
+            
+            # Remove any accidental trailing slash from the base URL
+            BASE_API_URL = BASE_API_URL.rstrip("/")
+            
+            # 💡 FIX 2: Append the "/predict" route to the API call
             response = requests.post(
-                API_URL,
+                f"{BASE_API_URL}/predict",
                 json={
                     "solar_gw_added": solar_gw,
                     "ev_sales_million": ev_sales,
@@ -109,10 +116,13 @@ if st.button("🚀 Generate Forecast", type="primary", use_container_width=True)
                 },
                 timeout=10
             )
+            
             if response.status_code != 200:
                 st.error(f"Backend Error: {response.text}")
                 st.stop()
+                
             forecast_data = response.json()
+            
             # ----------------------------------------------#
             forecast_df = pd.DataFrame({
                 "Quarter": forecast_data["forecast_quarters"],
@@ -130,7 +140,6 @@ if st.button("🚀 Generate Forecast", type="primary", use_container_width=True)
                 mime="text/csv"
             )
             # ----------------------------------------------#
-            
             
             # Build forecast chart
             fig = go.Figure()
@@ -180,7 +189,7 @@ if st.button("🚀 Generate Forecast", type="primary", use_container_width=True)
             
         except Exception as e:
             st.error(f"API Error: {e}. Make sure the FastAPI backend is running.")
-            st.info("To start the backend: `uvicorn app.main:app --reload`")
+            st.info("To start the backend locally: `uvicorn app.main:app --reload`")
 
 # ─── INDIA VS GLOBAL COMPARISON ──────────────────────────────────────────────
 st.divider()
@@ -218,8 +227,6 @@ fig2.update_layout(
 st.plotly_chart(fig2, use_container_width=True)
 
 st.caption("Data: WSTS, World Bank Trade Statistics | Forecast: EnergiChip Model v1.0")
-
-
 
 if solar_gw > 350 and ev_sales > 20:
     st.success("⚡ Aggressive Energy Transition Scenario")
