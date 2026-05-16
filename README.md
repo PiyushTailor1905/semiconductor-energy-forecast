@@ -1,4 +1,4 @@
-EnergiChip Forecast — Semiconductor Energy Demand Intelligence
+## EnergiChip Forecast — Semiconductor Energy Demand Intelligence
 
 An end-to-end machine learning system that forecasts semiconductor market demand using global energy transition indicators such as solar capacity expansion, EV adoption, and clean energy trends.
 
@@ -109,4 +109,4 @@ Improve uncertainty estimation (Bayesian models)
 Add anomaly detection for supply shocks
 
 # Author
-# Piyush Tailor
+Piyush Tailor
