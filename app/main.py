@@ -4,9 +4,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import joblib
 import pandas as pd
 from typing import Optional
+import os
+import json
+import joblib
+from prophet.serialize import model_from_json
 
 app = FastAPI(
     title="EnergiChip Forecast API",
@@ -25,23 +28,28 @@ app.add_middleware(
 # ─────────────────────────────────────────────────────────────
 # LOAD MODELS
 # ─────────────────────────────────────────────────────────────
+# Resolve base directory properly depending on app structure
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 try:
-    xgb_model = joblib.load("models/xgb_model.pkl")
-    prophet_model = joblib.load("models/prophet_model.pkl")
-    import os
+    # Load XGBoost/Feature cols using Joblib
+    xgb_model_path = os.path.join(BASE_DIR, "models", "xgb_model.pkl")
+    if os.path.exists(xgb_model_path):
+        xgb_model = joblib.load(xgb_model_path)
+    
+    feature_cols_path = os.path.join(BASE_DIR, "models", "feature_cols.pkl")
+    if os.path.exists(feature_cols_path):
+        feature_cols = joblib.load(feature_cols_path)
 
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    prophet_model = joblib.load(
-    os.path.join(BASE_DIR, "models", "prophet_model.pkl")
-    )
-    feature_cols = joblib.load(os.path.join(BASE_DIR, "models", "feature_cols.pkl"))
+    # ⚠️ CRITICAL: Load Prophet model using JSON, not Joblib/Pickle
+    prophet_model_path = os.path.join(BASE_DIR, "models", "prophet_model.json")
+    with open(prophet_model_path, "r") as fin:
+        prophet_model = model_from_json(json.load(fin))
 
     print("✅ Models loaded successfully")
 
 except Exception as e:
     print(f"❌ Error loading models: {e}")
-
     xgb_model = None
     prophet_model = None
     feature_cols = []
@@ -93,12 +101,11 @@ def health_check():
 def predict_revenue(request: ForecastRequest):
 
     try:
-
         # Ensure model is loaded
         if prophet_model is None:
             raise HTTPException(
                 status_code=500,
-                detail="Prophet model not loaded"
+                detail="Prophet model not loaded. Check model paths and ensure it is saved as a JSON file."
             )
 
         # Create future quarterly dates
@@ -106,6 +113,10 @@ def predict_revenue(request: ForecastRequest):
             periods=request.quarters_ahead,
             freq="QS"
         )
+
+        # ⚠️ NOTE: If your model was trained with extra regressors (solar_gw, ev_sales), 
+        # you MUST inject those values into the 'future' dataframe here before calling predict().
+        # Example: future["solar_gw_added"] = request.solar_gw_added
 
         # Generate forecast
         forecast = prophet_model.predict(future)
@@ -151,4 +162,4 @@ def predict_revenue(request: ForecastRequest):
         )
 
 # Run using:
-# uvicorn app.main:app --reload
+# uvicorn app.main:app --host 0.0.0.0 --port 10000

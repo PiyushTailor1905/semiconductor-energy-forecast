@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import json  # Added for native Prophet serialization
+from prophet.serialize import model_to_json  # Added for native Prophet serialization
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import xgboost as xgb
@@ -74,7 +76,7 @@ def train_prophet_model(df, target_col):
     """
     Train Facebook Prophet — our interpretable trend/seasonality model.
     Why Prophet: excellent for trend decomposition, handles seasonality automatically,
-    generates confidence intervals, easy to explain to non-technical stakeholders.
+    generations confidence intervals, easy to explain to non-technical stakeholders.
     Prophet expects specific column names: 'ds' for date, 'y' for target.
     """
     from prophet import Prophet
@@ -135,13 +137,20 @@ def evaluate_model(y_true, y_pred):
     
     return {"MAE": mae, "RMSE": rmse, "MAPE": mape, "R2": r2}
 
+#--------------------------------------------#
+#--------------------------------------------#
+
 def save_models(xgb_model, prophet_model, feature_cols, output_dir="models"):
     """Save trained models for use by the API."""
     os.makedirs(output_dir, exist_ok=True)
     
+    # Keep XGBoost and Features as pkl
     joblib.dump(xgb_model, f"{output_dir}/xgb_model.pkl")
-    joblib.dump(prophet_model, f"{output_dir}/prophet_model.pkl")
     joblib.dump(feature_cols, f"{output_dir}/feature_cols.pkl")
+    
+    # ⚠️ FIX: Save Prophet model natively using JSON serialization
+    with open(f"{output_dir}/prophet_model.json", "w") as fout:
+        json.dump(model_to_json(prophet_model), fout)
     
     print(f"\n✅ Models saved to {output_dir}/")
 

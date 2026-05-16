@@ -98,7 +98,7 @@ st.subheader("📈 Revenue Forecast")
 if st.button("🚀 Generate Forecast", type="primary", use_container_width=True):
     with st.spinner("Running forecast models..."):
         try:
-            API_URL = "https://energichip-api.onrender.com/predict"
+            API_URL = "http://127.0.0.1:8000/predict"
             response = requests.post(
                 API_URL,
                 json={
